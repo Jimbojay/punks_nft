@@ -1,4 +1,5 @@
 import { ethers } from 'ethers'
+
 const Data = ({ maxSupply, totalSupply, cost, balance}) => {
 	return(
 		<div className='text-center'>
