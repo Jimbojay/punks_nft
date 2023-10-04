@@ -20,6 +20,12 @@ async function main() {
 
   await nft.deployed()
   console.log(`NFT deployed to: ${nft.address}\n`)
+
+  let accounts = await ethers.getSigners()
+  let deployer = accounts[0]
+
+  nft.addToWhitelist(deployer.address)
+  console.log(`Deployer whitelisted`)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
