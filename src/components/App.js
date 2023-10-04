@@ -11,6 +11,7 @@ import Navigation from './Navigation';
 import Data from './Data';
 import Mint from './Mint';
 import Loading from './Loading';
+import NFTMetadata from './NFTMetadata';
 
 // ABIs: Import your contract ABIs here
 import NFT_ABI from '../abis/NFT.json'
@@ -31,6 +32,14 @@ function App() {
   const [balance, setBalance] = useState(0)
 
   const [isLoading, setIsLoading] = useState(true)
+
+  const [lastNFT, setLastNFT] = useState(null)
+  const [tokenIds, setTokenIds] = useState(null);
+
+  const [_NFTMetadata, setNFTMetadata] = useState(null);
+  const [isPauzed, setIsPauzed] = useState(false);
+
+  let items = [];
 
   const loadBlockchainData = async () => {
     // Initiate provider
@@ -58,6 +67,36 @@ function App() {
 
     setBalance(await nft.balanceOf(account))
 
+    // Fetch owned NFTs
+    let tokenIds = await nft.walletOfOwner(account)
+    setTokenIds(tokenIds);
+
+    // Fetch last bought NFT
+    setLastNFT(tokenIds[tokenIds.length - 1]);
+
+    // Fetch metadata on owned NFTs
+    for (let tokenId of tokenIds) {
+
+          try {
+            const response = await fetch(`https://gateway.pinata.cloud/ipfs/QmQ2jnDYecFhrf3asEWjyjZRX1pZSsNWG3qHzmNDvXa9qg/${tokenId}.json`);
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            const jsonData = await response.json();
+            // items.push(jsonData);
+            items[tokenId] = jsonData
+          } catch (error) {
+            console.error('There was a problem fetching data:', error);
+          }
+
+    }
+    setNFTMetadata(items);
+
+    // // Fetch pauze indicator
+    let _isPauzed = await nft.isPauzed();
+    setIsPauzed(_isPauzed)
+
+
     setIsLoading(false)
   }
 
@@ -82,7 +121,7 @@ function App() {
               {balance > 0 ? (
                 <div className='text-center'>
                   <img 
-                    src={`https://gateway.pinata.cloud/ipfs/QmQPEMsfd1tJnqYPbnTQCjoa8vczfsV1FmqZWgRdNQ7z3g/${balance.toString()}.png`} 
+                    src={`https://gateway.pinata.cloud/ipfs/QmQPEMsfd1tJnqYPbnTQCjoa8vczfsV1FmqZWgRdNQ7z3g/${lastNFT}.png`} 
                     alt="Open Punk"
                     height="400px"
                     width="400px"
@@ -92,31 +131,43 @@ function App() {
                 <img src={preview} alt="" />
               )}
             </Col>
-
             <Col>
               <div className='my-4 text-center'>
                 <Countdown date={parseInt(revealTime)} className='h2'/>
               </div>
-
               <Data 
                 maxSupply={maxSupply} 
                 totalSupply={totalSupply}
                 cost={cost}
                 balance={balance}
               />
-
               <Mint
                 provider={provider}
                 nft={nft}
                 cost={cost}
                 setIsLoading={setIsLoading}
+                isPauzed={isPauzed} 
               />
             </Col>
+          </Row>
 
+          <Row>
+            <Col>
+              <div className='my-4 text-center'>
+                <h3 className='my-4 text-center'>Owned NFT's</h3>
+              </div>
+            </Col>
+          </Row>
+
+          <Row>
+            <NFTMetadata
+              _NFTMetadata={_NFTMetadata}
+            />
           </Row>
         </>
       )}
     </Container>
+
   )
 }
 

@@ -12,9 +12,13 @@ contract NFT is ERC721Enumerable, Ownable  {
     uint256 public maxSupply;
     uint256 public allowMintingOn;
     string public baseURI;
+    bool public isPauzed = false;
+
+    mapping(address => bool) public whitelist; 
 
     event Mint(uint256 amount, address minter);
     event Withdraw(uint256 amount, address owner);
+    event Whitelist(address minter, string action);
 
     constructor(
         string memory _name, 
@@ -33,10 +37,15 @@ contract NFT is ERC721Enumerable, Ownable  {
     function mint(uint256 _mintAmount) public payable{
         // Only allow minting after specified time
         require(block.timestamp >= allowMintingOn);
-        // Must mint at least 1 NFT
+        // Must mint at least 1 NFT but not cannot own more than 5
         require(_mintAmount > 0);
+        require(balanceOf(msg.sender) + _mintAmount <= 5);
         // Require enough payment
         require(msg.value >= cost * _mintAmount);
+        // Require there is no pauze
+        require(!isPauzed);
+        // Require minter to be whitelisted
+        require(lookupAddressWhitelist(msg.sender));
 
         uint256 supply = totalSupply();
 
@@ -86,6 +95,25 @@ contract NFT is ERC721Enumerable, Ownable  {
 
     function setCost(uint256 _newCost) public onlyOwner {
         cost = _newCost;
+    }
+
+    function pauze(bool _isPauzed) public onlyOwner {
+        isPauzed = _isPauzed;
+    }
+
+    function addToWhitelist(address whitelistAddress) public onlyOwner{
+        whitelist[whitelistAddress] = true;
+        emit Whitelist(whitelistAddress, 'add');
+
+    }
+
+    function removeFromWhitelist(address whitelistAddress) public onlyOwner{
+        whitelist[whitelistAddress] = false;
+        emit Whitelist(whitelistAddress, 'remove');
+    }
+
+    function lookupAddressWhitelist(address whitelistAddress) public view returns (bool) {
+        return whitelist[whitelistAddress];
     }
 
 }
